@@ -17,7 +17,16 @@ router.get('/', async (req, res) => {
 // GET single landing page by slug
 router.get('/:slug', async (req, res) => {
   try {
-    const page = await LandingPage.findOne({ slug: req.params.slug });
+    const rawSlug = req.params.slug;
+    let decodedSlug = rawSlug;
+    try {
+      decodedSlug = decodeURIComponent(rawSlug);
+    } catch (e) {}
+
+    const page = await LandingPage.findOne({
+      $or: [{ slug: rawSlug }, { slug: decodedSlug }]
+    });
+
     if (!page) {
       return res.status(404).json({ success: false, message: 'الصفحة غير موجودة' });
     }
@@ -30,7 +39,7 @@ router.get('/:slug', async (req, res) => {
 // POST create new landing page
 router.post('/', upload.single('productImage'), async (req, res) => {
   try {
-    const { title, description, whatsappNumber, snapchatPixelId, tiktokPixelId } = req.body;
+    const { title, description, whatsappNumber, snapchatPixelId, tiktokPixelId, internalName } = req.body;
 
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'صورة المنتج مطلوبة' });
@@ -47,6 +56,7 @@ router.post('/', upload.single('productImage'), async (req, res) => {
     }
 
     const page = await LandingPage.create({
+      internalName: internalName || '',
       title,
       description,
       productImage: req.file.path,
@@ -71,7 +81,7 @@ router.put('/:slug', upload.single('productImage'), async (req, res) => {
       return res.status(404).json({ success: false, message: 'الصفحة غير موجودة' });
     }
 
-    const { title, description, whatsappNumber, snapchatPixelId, tiktokPixelId } = req.body;
+    const { title, description, whatsappNumber, snapchatPixelId, tiktokPixelId, internalName } = req.body;
 
     // If new image uploaded, delete old one from Cloudinary
     if (req.file) {
@@ -95,6 +105,7 @@ router.put('/:slug', upload.single('productImage'), async (req, res) => {
       page.slug = newSlug;
     }
 
+    page.internalName = internalName !== undefined ? internalName : page.internalName;
     page.title = title || page.title;
     page.description = description || page.description;
     page.whatsappNumber = whatsappNumber || page.whatsappNumber;

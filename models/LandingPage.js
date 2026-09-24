@@ -2,6 +2,11 @@ const mongoose = require('mongoose');
 
 const landingPageSchema = new mongoose.Schema(
   {
+    internalName: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     title: {
       type: String,
       required: [true, 'العنوان مطلوب'],
